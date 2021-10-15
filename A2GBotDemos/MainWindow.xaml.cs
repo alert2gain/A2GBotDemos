@@ -1,111 +1,47 @@
-﻿using Newtonsoft.Json;
-
+﻿using A2GBotDemos.ViewModels;
+using Newtonsoft.Json;
 using RestSharp;
-
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace A2GBotDemos
 {
-    public class WindowConfig : INotifyPropertyChanged
-    {
-        private string apiKey;
-        private string aKey;
-        private string iKey;
-        private string jsonCfg;
-        
-        public string ApiKey
-        {
-            get { return apiKey; }
-            set {
-                if (apiKey != value)
-                {
-                    apiKey = value;
-                    RaisePropertyChanged("ApiKey");
-                }
-            }
-        }
-
-        public string AKey
-        {
-            get { return aKey; }
-            set
-            {
-                if (aKey != value)
-                {
-                    aKey = value;
-                    RaisePropertyChanged("AKey");
-                }
-            }
-        }
-
-        public string IKey
-        {
-            get { return iKey; }
-            set
-            {
-                if (iKey != value)
-                {
-                    iKey = value;
-                    RaisePropertyChanged("IKey");
-                }
-            }
-        }
-
-        public string JsonCfg
-        {
-            get { return jsonCfg; }
-            set
-            {
-                if (jsonCfg != value)
-                {
-                    jsonCfg = value;
-                    RaisePropertyChanged("JsonCfg");
-                }
-            }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void RaisePropertyChanged(string property)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(property));
-            }
-        }
-    }
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// RestSharp client that connects to A2G.IO
+        /// </summary>
         RestClient _client;
 
+        /// <summary>
+        /// Edge bot activation URL
+        /// </summary>
         string activationUrl = "/triggeralert/alert";
+
+        /// <summary>
+        /// InputStream Streaming data URL
+        /// </summary>
         string streamUrl = "/v1/production/inputstream";
 
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
         public MainWindow()
         {            
             InitializeComponent();  
             _client = new RestClient("https://listen.a2g.io");
         }
 
+        /// <summary>
+        /// Triggers an activation of an Edge Bot using Window Parameters (VM)
+        /// </summary>
+        /// <param name="sender">WPF element that triggered the event</param>
+        /// <param name="e">Event information</param>
         private void TriggerBotManual(object sender, RoutedEventArgs e)
         {
             var dataContext = this.DataContext as WindowConfig;
@@ -130,6 +66,11 @@ namespace A2GBotDemos
             }
         }
 
+        /// <summary>
+        /// Sends a payload to an InputStream using the using Window Parameters (VM)
+        /// </summary>
+        /// <param name="sender">WPF element that triggered the event</param>
+        /// <param name="e">Event information</param>
         private void GeneratePatternPayload(object sender, RoutedEventArgs e)
         {
             var dataContext = this.DataContext as WindowConfig;
@@ -154,13 +95,22 @@ namespace A2GBotDemos
             }
         }
 
+        /// <summary>
+        /// Sends a random payload to an InputStream with a fixed schema using the Window Parameters (VM)
+        /// </summary>
+        /// <param name="sender">WPF element that triggered the event</param>
+        /// <param name="e">Event information</param>
         private void GenerateAnomalyPayloadNormal(object sender, RoutedEventArgs e)
         {
             var dataContext = this.DataContext as WindowConfig;
             Task.Factory.StartNew(() => { GenerateNormalPayload(dataContext); });
         }
 
-        private void GenerateNormalPayload(WindowConfig dataContext)
+        /// <summary>
+        /// Generates a normal payload with a Fixed Schema on Code (for Anomaly Detection)
+        /// </summary>
+        /// <param name="windowCfg">Window Configuration</param>
+        private void GenerateNormalPayload(WindowConfig windowCfg)
         {
             Random r = new Random();
 
@@ -178,12 +128,12 @@ namespace A2GBotDemos
 
                 dynamic payload = new
                 {
-                    IKEY = dataContext.IKey,
+                    IKEY = windowCfg.IKey,
                     Data = JsonConvert.SerializeObject(dataInfo)
                 };
 
                 RestRequest request = new RestRequest(streamUrl, Method.POST);
-                request.AddHeader("X-API-KEY", dataContext.ApiKey);
+                request.AddHeader("X-API-KEY", windowCfg.ApiKey);
                 request.AddJsonBody(payload);
 
                 var response = _client.Execute(request);
@@ -201,6 +151,11 @@ namespace A2GBotDemos
             }
         }
 
+        /// <summary>
+        /// Generates an abnormal payload (on iteration 200) with a Fixed Schema on Code (for Anomaly Detection)
+        /// </summary>
+        /// <param name="sender">WPF element that triggered the event</param>
+        /// <param name="e">Event information</param>
         private void GenerateAnomalyPayloadActivation(object sender, RoutedEventArgs e)
         {
             // We generate 256 data ticks, tick N°200 will be abnormal
@@ -208,7 +163,11 @@ namespace A2GBotDemos
             Task.Factory.StartNew(() => { GenData(dataContext); });
         }
 
-        private void GenData(WindowConfig dataContext)
+        /// <summary>
+        /// Generates a abnormal payload with a Fixed Schema on Code (for Anomaly Detection)
+        /// </summary>
+        /// <param name="windowCfg"></param>
+        private void GenData(WindowConfig windowCfg)
         {
             Random r = new Random();
             for (var i = 1; i <= 256; i++)
@@ -223,12 +182,12 @@ namespace A2GBotDemos
 
                 dynamic payload = new
                 {
-                    IKEY = dataContext.IKey,
+                    IKEY = windowCfg.IKey,
                     Data = JsonConvert.SerializeObject(dataInfo)
                 };
 
                 RestRequest request = new RestRequest(streamUrl, Method.POST);
-                request.AddHeader("X-API-KEY", dataContext.ApiKey);
+                request.AddHeader("X-API-KEY", windowCfg.ApiKey);
                 request.AddJsonBody(payload);
 
                 var response = _client.Execute(request);
@@ -245,8 +204,13 @@ namespace A2GBotDemos
 
                 Thread.Sleep(1);
             }
-        }        
+        }
 
+        /// <summary>
+        /// Formats the JSON input TextBox once Focus is lost.
+        /// </summary>
+        /// <param name="sender">WPF element that triggered the event</param>
+        /// <param name="e">Event information</param>
         private void InputSample_LostFocus(object sender, RoutedEventArgs e)
         {
             string data = InputSample.Text;
